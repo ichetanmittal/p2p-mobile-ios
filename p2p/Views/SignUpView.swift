@@ -3,9 +3,12 @@ import SwiftUI
 struct SignUpView: View {
     @State private var email = ""
     @State private var password = ""
-    @State private var errorMessage = ""
+    @State private var name = ""
+    @State private var phone = ""
     @State private var isLoading = false
-    @State private var isAuthenticated = false
+    @State private var errorMessage = ""
+    @State private var showVerification = false
+    @State private var userId = ""
     
     var body: some View {
         VStack(spacing: 20) {
@@ -15,10 +18,18 @@ struct SignUpView: View {
                 .padding(.top, 50)
             
             VStack(spacing: 20) {
+                TextField("Name", text: $name)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .autocapitalization(.words)
+                
                 TextField("Email", text: $email)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.none)
                     .keyboardType(.emailAddress)
+                
+                TextField("Phone", text: $phone)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.phonePad)
                 
                 SecureField("Password", text: $password)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -31,9 +42,7 @@ struct SignUpView: View {
                     .padding(.horizontal)
             }
             
-            Button(action: {
-                signUp()
-            }) {
+            Button(action: signUp) {
                 if isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -48,7 +57,7 @@ struct SignUpView: View {
             .background(Color.blue)
             .cornerRadius(10)
             .padding(.horizontal)
-            .disabled(isLoading)
+            .disabled(isLoading || email.isEmpty || password.isEmpty || name.isEmpty || phone.isEmpty)
             
             HStack {
                 Text("Already have an account?")
@@ -60,8 +69,8 @@ struct SignUpView: View {
             Spacer()
         }
         .padding()
-        .navigationDestination(isPresented: $isAuthenticated) {
-            MainView()
+        .navigationDestination(isPresented: $showVerification) {
+            VerificationView(userId: userId)
         }
     }
     
@@ -71,8 +80,11 @@ struct SignUpView: View {
         
         Task {
             do {
-                try await AuthService.shared.signUp(email: email, password: password)
-                isAuthenticated = true
+                let response = try await AuthService.shared.signUp(email: email, password: password, name: name, phone: phone)
+                if let id = response["userId"] as? String {
+                    userId = id
+                    showVerification = true
+                }
             } catch AuthError.serverError(let message) {
                 errorMessage = message
             } catch {

@@ -2,21 +2,21 @@ import SwiftUI
 
 struct SignInView: View {
     @StateObject private var authViewModel = AuthViewModel.shared
-    @State private var email = ""
+    @State private var identifier = ""
     @State private var password = ""
-    @State private var errorMessage = ""
     @State private var isLoading = false
+    @State private var errorMessage = ""
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Welcome Back")
+            Text("Sign In")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding(.top, 50)
             
             VStack(spacing: 20) {
-                TextField("Email", text: $email)
+                TextField("Email or Phone", text: $identifier)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .autocapitalization(.none)
                     .keyboardType(.emailAddress)
@@ -48,7 +48,7 @@ struct SignInView: View {
             .background(Color.blue)
             .cornerRadius(10)
             .padding(.horizontal)
-            .disabled(isLoading)
+            .disabled(isLoading || identifier.isEmpty || password.isEmpty)
             
             VStack(spacing: 10) {
                 Text("Don't have an account?")
@@ -66,37 +66,24 @@ struct SignInView: View {
         }
         .padding()
         .navigationBarBackButtonHidden(false)
+        .navigationDestination(isPresented: $authViewModel.isAuthenticated) {
+            MainView()
+        }
     }
     
     private func signIn() {
-        print("Sign in button tapped")
-        guard !email.isEmpty && !password.isEmpty else {
-            errorMessage = "Please enter both email and password"
-            return
-        }
-        
         isLoading = true
         errorMessage = ""
         
         Task {
             do {
-                print("Attempting to sign in...")
-                try await authViewModel.signIn(email: email, password: password)
-                print("Sign in successful")
-            } catch AuthError.invalidCredentials {
-                print("Invalid credentials")
-                await MainActor.run {
-                    errorMessage = "Invalid email or password"
-                }
+                try await authViewModel.signIn(identifier: identifier, password: password)
+            } catch AuthError.serverError(let message) {
+                errorMessage = message
             } catch {
-                print("Error: \(error.localizedDescription)")
-                await MainActor.run {
-                    errorMessage = "Failed to sign in. Please try again."
-                }
+                errorMessage = "Failed to sign in. Please try again."
             }
-            await MainActor.run {
-                isLoading = false
-            }
+            isLoading = false
         }
     }
 }

@@ -9,8 +9,8 @@ class AuthViewModel: ObservableObject {
         isAuthenticated = AuthService.shared.isAuthenticated
     }
     
-    func signIn(email: String, password: String) async throws {
-        try await AuthService.shared.signIn(email: email, password: password)
+    func signIn(identifier: String, password: String) async throws {
+        try await AuthService.shared.signIn(identifier: identifier, password: password)
         await MainActor.run {
             self.isAuthenticated = true
         }

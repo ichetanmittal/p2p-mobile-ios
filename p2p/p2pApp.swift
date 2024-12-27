@@ -11,7 +11,9 @@ import SwiftUI
 struct p2pApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                ContentView()
+            }
         }
     }
 }
